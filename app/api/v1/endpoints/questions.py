@@ -1,23 +1,24 @@
-from typing import Optional, List
 
+
+from typing import Optional, List
 import chardet
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 import csv
 from io import StringIO
 from app.schemas.questions import Question, QuestionCreate
-from app.crud.questions import create_question, get_questions,get_questions_by_cat
-from app.db.session import SessionLocal, get_db
+from app.crud.questions import create_question, get_questions, get_questions_by_cat
+from app.db.session import get_db
+from app.security import get_current_user, TokenData
 
 router = APIRouter()
 
-
-
-@router.post("/upload_questions/", response_model=list[Question])
+@router.post("/upload_questions/", response_model=List[Question])
 async def upload_csv(
-        file: UploadFile = File(...),
-        category: str = None,
-        db: Session = Depends(get_db)
+    file: UploadFile = File(...),
+    category: str = None,
+    db: Session = Depends(get_db),
+    current_user: TokenData = Depends(get_current_user)
 ):
     questions = []
     print(f"Received file: {file.filename}")
@@ -68,19 +69,25 @@ async def upload_csv(
 
     return questions
 
-
-@router.get("/questions/", response_model=list[Question])
-def read_questions(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+@router.get("/questions/", response_model=List[Question])
+def read_questions(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: TokenData = Depends(get_current_user)
+):
     questions = get_questions(db, skip=skip, limit=limit)
     print(f"Retrieved questions: {questions}")
     return questions
 
 @router.get("/questions_by_cat/", response_model=List[Question])
-def read_questions(
+def read_questions_by_cat(
+    current_user: TokenData = Depends(get_current_user),
     category: Optional[str] = None,
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+
 ):
     questions = get_questions_by_cat(db, category=category, skip=skip, limit=limit)
     if not questions:
