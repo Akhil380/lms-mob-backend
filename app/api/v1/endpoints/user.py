@@ -24,6 +24,25 @@ def serialize_user(user):
         "registered_on": user.registered_on
     }
 
+
+# @router.post("/signin", response_model=dict)
+# def signin(user_login: UserLogin, db: Session = Depends(get_db)):
+#     db_user = authenticate_user(db, user_login.email_or_mobile, user_login.password)
+#     if not db_user:
+#         raise HTTPException(
+#             status_code=status.HTTP_401_UNAUTHORIZED,
+#             detail="Invalid credentials"
+#         )
+#
+#     access_token = create_access_token(data={"user_mail": db_user.email, "name": db_user.name, "mob": db_user.mobile})
+#     user_data = serialize_user(db_user)
+#     user_out = UserOut(**user_data)
+#     return {
+#         "user": user_out,
+#         "access_token": access_token,
+#         "token_type": "bearer"
+#     }
+
 @router.post("/signin", response_model=dict)
 def signin(user_login: UserLogin, db: Session = Depends(get_db)):
     db_user = authenticate_user(db, user_login.email_or_mobile, user_login.password)
@@ -33,9 +52,16 @@ def signin(user_login: UserLogin, db: Session = Depends(get_db)):
             detail="Invalid credentials"
         )
 
-    access_token = create_access_token(data={"sub": db_user.email})
+    # Create the JWT token using user data
+    access_token = create_access_token(
+        data={"user_mail": db_user.email, "name": db_user.name, "mob": db_user.mobile}
+    )
+
+    # Serialize the user data (assuming serialize_user is a utility function to format user data)
     user_data = serialize_user(db_user)
     user_out = UserOut(**user_data)
+
+    # Return the user data along with the access token
     return {
         "user": user_out,
         "access_token": access_token,
@@ -52,6 +78,7 @@ def create_new_user(user: UserCreate, db: Session = Depends(get_db)):
     db_user = create_user(db=db, user=user)
     return db_user
 
+
 @router.get("/users/{user_id}", response_model=UserOut)
 def read_user(user_id: int, db: Session = Depends(get_db)):
     db_user = get_user(db, user_id=user_id)
@@ -59,10 +86,12 @@ def read_user(user_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return db_user
 
+
 @router.get("/users/", response_model=List[UserOut])
 def read_users(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
     users = get_users(db, skip=skip, limit=limit)
     return users
+
 
 @router.get("/users/by-mobile/{mobile}", response_model=UserOut)
 def read_user_by_mobile(mobile: str, db: Session = Depends(get_db)):
@@ -70,6 +99,7 @@ def read_user_by_mobile(mobile: str, db: Session = Depends(get_db)):
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return db_user
+
 
 # @router.put("/users/{user_id}", response_model=UserOut)
 # def update_existing_user(user_id: int, user_update: UserUpdate, db: Session = Depends(get_db)):
@@ -84,6 +114,7 @@ def delete_existing_user(user_id: int, db: Session = Depends(get_db)):
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return db_user
+
 
 @router.post("/refresh-token")
 def refresh_token(current_user: TokenData = Depends(get_current_user)):

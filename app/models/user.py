@@ -1,6 +1,8 @@
 
 
 from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy.orm import relationship
+
 from app.db.base import Base
 from datetime import datetime
 
@@ -14,3 +16,5 @@ class User(Base):
     mobile = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
     registered_on = Column(DateTime, default=datetime.utcnow)
+
+    answers = relationship("UserAnswer", back_populates="user")
