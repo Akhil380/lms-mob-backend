@@ -49,7 +49,7 @@ from fastapi import Depends, HTTPException, status
 from jose import JWTError, jwt
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Union
 
 # JWT Settings
 SECRET_KEY = "lmsSecret"
@@ -61,6 +61,7 @@ class TokenData(BaseModel):
     email: Optional[str] = None
     name: Optional[str] = None
     mobile: Optional[str] = None
+    user_id: Union[int, str]
 
 oauth2_scheme = HTTPBearer()
 
@@ -90,17 +91,25 @@ def get_current_user(token: HTTPAuthorizationCredentials = Depends(oauth2_scheme
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
+        # Decode the JWT token
         payload = jwt.decode(token.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+
+        # Extract the necessary data from the payload
+        user_id = payload.get("user_id")  # Allow both int and str for user_id
         email: str = payload.get("user_mail")
         name: str = payload.get("name")
         mobile: str = payload.get("mob")
 
-        if email is None or name is None or mobile is None:
+        # Check if any of the required fields are missing
+        if user_id is None or email is None or name is None or mobile is None:
             raise credentials_exception
 
-        # Populate the TokenData with the decoded information
-        token_data = TokenData(email=email, name=name, mobile=mobile)
+        # Populate the TokenData with the decoded information, including user_id
+        token_data = TokenData(user_id=user_id, email=email, name=name, mobile=mobile)
+
     except JWTError:
         raise credentials_exception
 
     return token_data
+
+

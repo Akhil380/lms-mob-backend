@@ -1,14 +1,17 @@
 from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.params import Query
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
+
+from app.crud.questions import get_user_details
 from app.crud.user import (
     get_user_by_email, create_user, get_user, get_users,
     get_user_by_mobile, delete_user,
     authenticate_user
 )
 from app.db.session import get_db
-from app.models.user import User
+from app.schemas.questions import UserResponse
 from app.schemas.user import UserCreate, UserOut, UserLogin
 from app.security import create_access_token, TokenData, get_current_user
 
@@ -42,7 +45,16 @@ def serialize_user(user):
 #         "access_token": access_token,
 #         "token_type": "bearer"
 #     }
-
+@router.get("/user-details/", response_model=UserResponse)
+def get_user_details_endpoint(
+    user_id: Optional[int] = Query(None),
+    email: Optional[str] = Query(None),
+    mobile: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: TokenData = Depends(get_current_user)
+):
+    user = get_user_details(db, user_id=user_id, email=email, mobile=mobile)
+    return user
 @router.post("/signin", response_model=dict)
 def signin(user_login: UserLogin, db: Session = Depends(get_db)):
     db_user = authenticate_user(db, user_login.email_or_mobile, user_login.password)
@@ -52,9 +64,14 @@ def signin(user_login: UserLogin, db: Session = Depends(get_db)):
             detail="Invalid credentials"
         )
 
-    # Create the JWT token using user data
+    # Include the user ID in the JWT token payload
     access_token = create_access_token(
-        data={"user_mail": db_user.email, "name": db_user.name, "mob": db_user.mobile}
+        data={
+            "user_id": db_user.id,  # Add user ID
+            "user_mail": db_user.email,
+            "name": db_user.name,
+            "mob": db_user.mobile
+        }
     )
 
     # Serialize the user data (assuming serialize_user is a utility function to format user data)
@@ -67,6 +84,7 @@ def signin(user_login: UserLogin, db: Session = Depends(get_db)):
         "access_token": access_token,
         "token_type": "bearer"
     }
+
 @router.post("/signup/", response_model=UserOut)
 def create_new_user(user: UserCreate, db: Session = Depends(get_db)):
     if user.password != user.confirmPassword:

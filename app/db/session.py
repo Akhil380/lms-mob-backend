@@ -16,7 +16,7 @@ def get_db():
         db.close()
 
 # Import all models here to ensure they are registered with the Base
-from app.models.user import User
+from app.models.questions import User
 
 # Create all tables
 Base.metadata.create_all(bind=engine)
