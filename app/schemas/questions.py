@@ -22,7 +22,7 @@ class QuestionBase(BaseModel):
     correct_option: str
     category: Optional[str] = None
     test_no: str
-    test_time: Optional[int] = None  # Test duration in minutes
+    test_time: Optional[int] = None
     test_availability: Optional[str] = None
 class QuestionCreate(QuestionBase):
     pass
