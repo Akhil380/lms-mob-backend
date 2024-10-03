@@ -30,7 +30,9 @@ def create_question(db: Session, question: QuestionCreate) -> Question:
         option_d=question.option_d,
         correct_option=question.correct_option,
         category=question.category,
-        test_no=question.test_no
+        test_no=question.test_no,
+        test_time=question.test_time,
+        test_availability=question.test_availability
     )
     db.add(db_question)
     db.commit()
