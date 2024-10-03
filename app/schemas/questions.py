@@ -173,3 +173,12 @@ class UserSubscriptionResponse(BaseModel):
 
     class Config:
         orm_mode = True
+
+class TimeAndAvailabilityResponse(BaseModel):
+    set_no: str
+    test_no: str
+    test_time: Optional[int]  # Test time (in minutes)
+    test_availability: Optional[str]  # Test availability (free/paid)
+
+    class Config:
+        orm_mode = True

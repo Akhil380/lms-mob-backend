@@ -2,12 +2,13 @@ from typing import List, Optional
 import chardet
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from fastapi.params import Query
+from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 import csv
 from io import StringIO
 from app.schemas.questions import Question, QuestionCreate, QuestionSetType, TestNoWithCategoryResponse, \
     TestResultCreate, TestResultResponse, TestSummaryResponse, ReviewSummaryResponse, UserSubscriptionResponse, \
-    UserSubscriptionCreate, UserResponse
+    UserSubscriptionCreate, UserResponse, TimeAndAvailabilityResponse
 from app.crud.questions import create_question, get_questions, get_questions_by_cat, get_question_set_types, \
     delete_question_set_type_by_name, get_distinct_testno_with_category, create_test_result, \
     get_review_summary, fetch_test_summary, create_user_subscriptions, get_user_details
@@ -15,7 +16,8 @@ from app.db.session import get_db
 from app.security import get_current_user, TokenData
 import logging
 
-from app.models.questions import QuestionSetType as SQLAlchemyQuestionSetType, TestResult
+from app.models.questions import QuestionSetType as SQLAlchemyQuestionSetType, TestResult, User, \
+    user_question_set_association
 from app.schemas.questions import QuestionSetTypeCreate
 from app.models.questions import Question as QuestionModel
 from app.schemas.questions import Question as QuestionSchema
@@ -220,6 +222,7 @@ def get_test_summary(user_id: int, test_no: str, set_no: str,
 
     return summary
 
+
 @router.get("/review_summary", response_model=List[TestResultResponse])
 def review_summary(user_id: int, test_no: int, set_no: int, db: Session = Depends(get_db),
                    current_user: TokenData = Depends(get_current_user)):
@@ -236,3 +239,55 @@ def review_summary(user_id: int, test_no: int, set_no: int, db: Session = Depend
 @router.post("/subscribe/")
 def subscribe_to_question_sets(user_id: int, question_set_ids: List[int], db: Session = Depends(get_db)):
     return create_user_subscriptions(db, user_id, question_set_ids)
+
+
+
+
+@router.get("/check_subscription/")
+def check_subscription(user_id: int, set_id: int, db: Session = Depends(get_db)):
+    """
+    Endpoint to check if a user is subscribed to a specific question set.
+    """
+    # Corrected SQLAlchemy syntax using `select(1)`
+    subscription_exists = db.execute(
+        select(1)
+        .select_from(user_question_set_association)
+        .where(user_question_set_association.c.user_id == user_id)
+        .where(user_question_set_association.c.question_set_id == set_id)
+    ).first()
+
+    if not subscription_exists:
+        return {"is_subscribed": False}
+
+    return {"is_subscribed": True}
+@router.get("/test_access_details/", response_model=TimeAndAvailabilityResponse)
+def get_test_details(
+        category: Optional[str],  # setName/category
+        test_no: Optional[int],  # testNo
+        db: Session = Depends(get_db)
+    ):
+    # Validate inputs
+    if not category or not test_no:
+        raise HTTPException(status_code=400, detail="Category and test number must be provided.")
+
+    # Query the database
+    data = (
+        db.query(QuestionModel)
+        .filter(QuestionModel.category == category)
+        .filter(QuestionModel.test_no == str(test_no))  # Convert test_no to string
+        .first()
+    )
+
+    # If no matching test found
+    if not data:
+        raise HTTPException(status_code=404, detail="Test not found for the provided category and test_no.")
+
+    # Return the response using the Pydantic model
+    return TimeAndAvailabilityResponse(
+        set_no=data.category,
+        test_no=data.test_no,
+        test_time=data.test_time,
+        test_availability=data.test_availability
+    )
+
+
