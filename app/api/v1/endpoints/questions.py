@@ -9,6 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session, joinedload
 import csv
 from io import StringIO
+
+from app.core.config import settings
 from app.schemas.questions import Question, QuestionCreate, QuestionSetType, TestNoWithCategoryResponse, \
     TestResultCreate, TestResultResponse, TestSummaryResponse, ReviewSummaryResponse, UserSubscriptionResponse, \
     UserSubscriptionCreate, UserResponse, TimeAndAvailabilityResponse, VerifyOTPRequest, GenerateOTPRequest
@@ -307,8 +309,7 @@ def get_test_details(
 
 # Brevo API configuration
 configuration = sib_api_v3_sdk.Configuration()
-configuration.api_key['api-key'] = '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'
-
+configuration.api_key['api-key'] = settings.sendinblue_api_key
 
 # Pydantic model for the email data
 class EmailRequest(BaseModel):
