@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from typing import Optional, List
 
 # Schema for question creation
@@ -182,3 +182,11 @@ class TimeAndAvailabilityResponse(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+class GenerateOTPRequest(BaseModel):
+    email: EmailStr  # Ensure that the email is valid
+
+class VerifyOTPRequest(BaseModel):
+    email: EmailStr  # The email to verify the OTP against
+    otp: str  # The OTP code to verify

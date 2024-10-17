@@ -1,6 +1,7 @@
 from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.params import Query
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
@@ -8,11 +9,11 @@ from app.crud.questions import get_user_details
 from app.crud.user import (
     get_user_by_email, create_user, get_user, get_users,
     get_user_by_mobile, delete_user,
-    authenticate_user
+    authenticate_user, update_user_password, pwd_context
 )
 from app.db.session import get_db
 from app.schemas.questions import UserResponse
-from app.schemas.user import UserCreate, UserOut, UserLogin
+from app.schemas.user import UserCreate, UserOut, UserLogin, UpdatePasswordResponse, UpdatePasswordRequest
 from app.security import create_access_token, TokenData, get_current_user
 
 router = APIRouter()
@@ -95,6 +96,23 @@ def create_new_user(user: UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Mobile number already registered")
     db_user = create_user(db=db, user=user)
     return db_user
+
+
+def get_password_hash(password: str) -> str:
+    return pwd_context.hash(password)
+
+
+@router.put("/update-password", response_model=UpdatePasswordResponse)
+def update_password(request: UpdatePasswordRequest, db: AsyncSession = Depends(get_db)):
+    user = get_user_by_email(db, request.email)
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    hashed_password = get_password_hash(request.new_password)
+    update_user_password(db, request.email, hashed_password)
+
+    return {"message": "Password updated successfully"}
 
 
 @router.get("/users/{user_id}", response_model=UserOut)

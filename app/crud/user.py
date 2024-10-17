@@ -1,3 +1,5 @@
+from sqlalchemy import update
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 from app.models.questions import User
 from app.schemas.user import UserCreate
@@ -33,6 +35,12 @@ def create_user(db: Session, user: UserCreate) -> User:
     db.refresh(db_user)
     return db_user
 
+
+def update_user_password(db: AsyncSession, email: str, hashed_password: str) -> None:
+    db.execute(
+        update(User).where(User.email == email).values(hashed_password=hashed_password)
+    )
+    db.commit()
 # def update_user(db: Session, user_id: int, user_update: UserUpdate) -> Optional[User]:
 #     db_user = get_user(db, user_id=user_id)
 #     if db_user:

@@ -39,3 +39,11 @@ class UserOut(BaseModel):
 
     class Config:
         orm_mode = True
+
+class UpdatePasswordRequest(BaseModel):
+    email: EmailStr
+    new_password: str
+
+
+class UpdatePasswordResponse(BaseModel):
+    message: str
