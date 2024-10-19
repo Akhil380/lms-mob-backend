@@ -310,6 +310,7 @@ def get_test_details(
 # Brevo API configuration
 configuration = sib_api_v3_sdk.Configuration()
 configuration.api_key['api-key'] = settings.sendinblue_api_key
+print("key",settings.sendinblue_api_key)
 
 # Pydantic model for the email data
 class EmailRequest(BaseModel):
