@@ -2,9 +2,10 @@ from fastapi import HTTPException
 from sqlalchemy import distinct, asc
 from sqlalchemy.orm import Session
 from typing import Optional, List
-from app.models.questions import Question, QuestionSetType, TestResult, User
+from app.models.questions import Question, QuestionSetType, TestResult, User, ExamMaster
 from app.schemas.questions import QuestionCreate, QuestionSetTypeCreate, TestResultCreate, TestResultResponse, \
-    UserSubscriptionCreate, UserSubscriptionResponse
+    UserSubscriptionCreate, UserSubscriptionResponse, ExamMasterCreate
+
 
 def get_user_details(db: Session, user_id: int = None, email: str = None, mobile: str = None):
     if user_id:
@@ -32,7 +33,8 @@ def create_question(db: Session, question: QuestionCreate) -> Question:
         category=question.category,
         test_no=question.test_no,
         test_time=question.test_time,
-        test_availability=question.test_availability
+        test_availability=question.test_availability,
+        exam_master_id = question.exam_master_id
     )
     db.add(db_question)
     db.commit()
@@ -52,6 +54,42 @@ def get_questions_by_cat(db: Session, category: Optional[str] = None, skip: int 
         query = query.filter(Question.category == category)
     return query.offset(skip).limit(limit).all()
 
+def create_exam_master_deatils(db: Session, exam: ExamMasterCreate):
+    db_exam = ExamMaster(
+        name=exam.name,
+        description=exam.description,
+
+    )
+    db.add(db_exam)
+    db.commit()
+    db.refresh(db_exam)
+    return db_exam
+
+# Function to get an exam master by ID
+def get_exam_master(db: Session, exam_id: int):
+    return db.query(ExamMaster).filter(ExamMaster.id == exam_id).first()
+
+# Function to get all exam masters
+def get_exam_masters(db: Session, skip: int = 0, limit: int = 10):
+    return db.query(ExamMaster).offset(skip).limit(limit).all()
+
+
+# Function to delete an exam master by ID
+def delete_exam_master_data(db: Session, exam_id: int):
+    db_exam = db.query(ExamMaster).filter(ExamMaster.id == exam_id).first()
+    if db_exam:
+        db.delete(db_exam)
+        db.commit()
+        return db_exam
+    return None
+
+def get_categories_by_exam_master(db: Session, exam_master_id: int) -> List[str]:
+    categories = (
+        db.query(distinct(Question.category))
+        .filter(Question.exam_master_id == exam_master_id)
+        .all()
+    )
+    return [category[0] for category in categories]  # Extract category names from tuples
 
 # CRUD for creating a question set type
 def create_question_set_type(db: Session, question_set: QuestionSetTypeCreate) -> QuestionSetType:

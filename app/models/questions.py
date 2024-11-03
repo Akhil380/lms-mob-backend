@@ -225,6 +225,19 @@ class User(Base):
         back_populates="subscribers"
     )
 
+
+
+class ExamMaster(Base):
+    __tablename__ = "exam_masters"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+
+    # Relationship with Question
+    questions = relationship("Question", back_populates="exam_master")
+
+
 class QuestionSetType(Base):
     __tablename__ = "question_set_types"
 
@@ -254,11 +267,16 @@ class Question(Base):
     test_time = Column(Integer, nullable=True)  # Test duration in minutes
     test_availability = Column(String, nullable=True)
 
-    # Relationship to TestResult
+    # Foreign key to link with ExamMaster
+    exam_master_id = Column(Integer, ForeignKey("exam_masters.id"), nullable=False)
+
+    # Relationships
+    exam_master = relationship("ExamMaster", back_populates="questions")
     test_results = relationship("TestResult", back_populates="question")
 
     def __repr__(self):
         return f"<Question(description={self.description}, correct_option={self.correct_option})>"
+
 
 # SQLAlchemy model for test results
 class TestResult(Base):

@@ -24,6 +24,9 @@ class QuestionBase(BaseModel):
     test_no: str
     test_time: Optional[int] = None
     test_availability: Optional[str] = None
+    exam_master_id: int
+
+
 class QuestionCreate(QuestionBase):
     pass
 
@@ -45,6 +48,21 @@ class QuestionSetType(BaseModel):
     class Config:
         from_attributes = True  # For SQLAlchemy compatibility
 
+
+class ExamMasterBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+
+
+class ExamMasterCreate(ExamMasterBase):
+    pass
+
+class ExamMasterResponse(ExamMasterBase):
+    id: int
+
+    class Config:
+        from_attributes = True
+
 class TestNoWithCategoryResponse(BaseModel):
     test_no: str
     category: str
@@ -52,6 +70,13 @@ class TestNoWithCategoryResponse(BaseModel):
     class Config:
         orm_mode = True
 
+
+
+class CategoryResponse(BaseModel):
+    category_id: str
+
+    class Config:
+        orm_mode = True
 
 # class QuestionResult(BaseModel):
 #     question_id: int

@@ -1,8 +1,10 @@
+import os
 from datetime import datetime, timedelta
 import random
 from typing import List, Optional
 import chardet
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi.openapi.models import Response
 from fastapi.params import Query
 from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,19 +12,24 @@ from sqlalchemy.orm import Session, joinedload
 import csv
 from io import StringIO
 
+from starlette.responses import StreamingResponse
+
+from app import crud, schemas
 from app.core.config import settings
 from app.schemas.questions import Question, QuestionCreate, QuestionSetType, TestNoWithCategoryResponse, \
     TestResultCreate, TestResultResponse, TestSummaryResponse, ReviewSummaryResponse, UserSubscriptionResponse, \
-    UserSubscriptionCreate, UserResponse, TimeAndAvailabilityResponse, VerifyOTPRequest, GenerateOTPRequest
+    UserSubscriptionCreate, UserResponse, TimeAndAvailabilityResponse, VerifyOTPRequest, GenerateOTPRequest, \
+    ExamMasterResponse, ExamMasterCreate, CategoryResponse
 from app.crud.questions import create_question, get_questions, get_questions_by_cat, get_question_set_types, \
     delete_question_set_type_by_name, get_distinct_testno_with_category, create_test_result, \
-    get_review_summary, fetch_test_summary, create_user_subscriptions, get_user_details
+    get_review_summary, fetch_test_summary, create_user_subscriptions, get_user_details, get_exam_master, \
+    get_exam_masters, create_exam_master_deatils, delete_exam_master_data, get_categories_by_exam_master
 from app.db.session import get_db
 from app.security import get_current_user, TokenData
 import logging
 
 from app.models.questions import QuestionSetType as SQLAlchemyQuestionSetType, TestResult, User, \
-    user_question_set_association, Otp
+    user_question_set_association, Otp, ExamMaster
 from app.schemas.questions import QuestionSetTypeCreate
 from app.models.questions import Question as QuestionModel
 from app.schemas.questions import Question as QuestionSchema
@@ -45,10 +52,12 @@ router = APIRouter()
 @router.post("/upload_questions/", response_model=List[Question])
 async def upload_csv(
         file: UploadFile = File(...),
+
         category: Optional[str] = None,
         test_no: str = None,
         test_time: Optional[int] = None,  # Accept test duration
         test_availability: Optional[str] = None,  # Accept test availability (e.g., 'free', 'paid')
+        exam_master_id: int = None,
         db: Session = Depends(get_db),
         #current_user: TokenData = Depends(get_current_user)
 ):
@@ -97,7 +106,8 @@ async def upload_csv(
                 category=category,
                 test_no=test_no,
                 test_time=test_time,  # Include test time
-                test_availability=test_availability  # Include test availability
+                test_availability=test_availability , # Include test availability
+                exam_master_id = exam_master_id
             )
             created_question = create_question(db=db, question=question_data)
             questions.append(created_question)
@@ -119,6 +129,12 @@ def read_questions(
     return get_questions(db, skip=skip, limit=limit)
 
 
+@router.get("/exam/{exam_master_id}/categories", response_model=List[CategoryResponse])
+def read_categories_by_exam_master(exam_master_id: int, db: Session = Depends(get_db)):
+    categories = get_categories_by_exam_master(db=db, exam_master_id=exam_master_id)
+    if not categories:
+        raise HTTPException(status_code=404, detail="No categories found for the given exam_master_id")
+    return [{"category_id": category} for category in categories]
 # Endpoint to get questions by category
 @router.get("/questions_by_cat/", response_model=List[Question])
 def read_questions_by_cat(
@@ -142,6 +158,31 @@ def get_testno_category(
 
     # Extract only test_no values from the result and return them
     return [test_no[0] for test_no in testnos]
+
+# Endpoint to create an exam master
+@router.post("/exam_masters/", response_model=ExamMasterResponse)
+def create_exam_master(exam: ExamMasterCreate, db: Session = Depends(get_db)):
+    return create_exam_master_deatils(db=db, exam=exam)
+
+# Endpoint to get an exam master by ID
+@router.get("/exam_masters/{exam_id}", response_model=ExamMasterResponse)
+def read_exam_master(exam_id: int, db: Session = Depends(get_db)):
+    db_exam = get_exam_master(db, exam_id=exam_id)
+    if db_exam is None:
+        raise HTTPException(status_code=404, detail="Exam master not found")
+    return db_exam
+
+# Endpoint to get all exam masters
+@router.get("/exam_masters/", response_model=List[ExamMasterResponse])
+def read_exam_masters(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    return get_exam_masters(db, skip=skip, limit=limit)
+
+@router.delete("/exam_masters/{exam_id}", response_model=ExamMasterResponse)
+def delete_exam_master(exam_id: int, db: Session = Depends(get_db)):
+    db_exam = delete_exam_master_data(db, exam_id=exam_id)
+    if db_exam is None:
+        raise HTTPException(status_code=404, detail="Exam not found")
+    return db_exam
 
 
 @router.post("/question_set_type/", response_model=QuestionSetTypeCreate)
