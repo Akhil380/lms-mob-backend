@@ -23,7 +23,8 @@ from app.schemas.questions import Question, QuestionCreate, QuestionSetType, Tes
 from app.crud.questions import create_question, get_questions, get_questions_by_cat, get_question_set_types, \
     delete_question_set_type_by_name, get_distinct_testno_with_category, create_test_result, \
     get_review_summary, fetch_test_summary, create_user_subscriptions, get_user_details, get_exam_master, \
-    get_exam_masters, create_exam_master_deatils, delete_exam_master_data, get_categories_by_exam_master
+    get_exam_masters, create_exam_master_deatils, delete_exam_master_data, get_categories_by_exam_master, \
+    get_distinct_testno_with_category_and_master
 from app.db.session import get_db
 from app.security import get_current_user, TokenData
 import logging
@@ -159,6 +160,20 @@ def get_testno_category(
     # Extract only test_no values from the result and return them
     return [test_no[0] for test_no in testnos]
 
+
+@router.get("/testno_with_category_and_master/", response_model=List[str])
+def get_testno_category_and_master(
+        category: str,
+        master_id: int,
+        db: Session = Depends(get_db),
+        current_user: TokenData = Depends(get_current_user)
+):
+    testnos = get_distinct_testno_with_category_and_master(db, category, master_id)
+    if not testnos:
+        raise HTTPException(status_code=404, detail="No test numbers found for this category and master ID")
+
+    # Extract only test_no values from the result and return them
+    return [test_no[0] for test_no in testnos]
 # Endpoint to create an exam master
 @router.post("/exam_masters/", response_model=ExamMasterResponse)
 def create_exam_master(exam: ExamMasterCreate, db: Session = Depends(get_db)):
@@ -320,7 +335,7 @@ def check_subscription(user_id: int, set_id: int, db: Session = Depends(get_db))
 @router.get("/test_access_details/", response_model=TimeAndAvailabilityResponse)
 def get_test_details(
         category: Optional[str],  # setName/category
-        test_no: Optional[int],  # testNo
+        test_no: Optional[str],  # testNo
         db: Session = Depends(get_db)
     ):
     # Validate inputs

@@ -121,6 +121,11 @@ def delete_question_set_type_by_name(db: Session, set_name: str):
 def get_distinct_testno_with_category(db: Session, category: str):
     return db.query(distinct(Question.test_no)).filter(Question.category == category).order_by(asc(Question.test_no)).all()
 
+def get_distinct_testno_with_category_and_master(db: Session, category: str, master_id: int):
+    return db.query(Question.test_no).filter(
+            Question.category == category,
+            Question.exam_master_id == master_id
+        ).distinct().all()
 
     user_answer = db.query(UserAnswer).filter(UserAnswer.id == answer_id).first()
     if user_answer:
