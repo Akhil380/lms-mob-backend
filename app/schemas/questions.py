@@ -165,7 +165,12 @@ class TestSummaryResponse(BaseModel):
     class Config:
         orm_mode = True
 
+class TestSetResponse(BaseModel):
+    test_no: int
+    set_no: int
 
+    class Config:
+        orm_mode: True
 
 class ReviewQuestion(BaseModel):
     question_id: int

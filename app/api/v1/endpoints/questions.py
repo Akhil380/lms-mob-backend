@@ -19,12 +19,12 @@ from app.core.config import settings
 from app.schemas.questions import Question, QuestionCreate, QuestionSetType, TestNoWithCategoryResponse, \
     TestResultCreate, TestResultResponse, TestSummaryResponse, ReviewSummaryResponse, UserSubscriptionResponse, \
     UserSubscriptionCreate, UserResponse, TimeAndAvailabilityResponse, VerifyOTPRequest, GenerateOTPRequest, \
-    ExamMasterResponse, ExamMasterCreate, CategoryResponse
+    ExamMasterResponse, ExamMasterCreate, CategoryResponse, TestSetResponse
 from app.crud.questions import create_question, get_questions, get_questions_by_cat, get_question_set_types, \
     delete_question_set_type_by_name, get_distinct_testno_with_category, create_test_result, \
     get_review_summary, fetch_test_summary, create_user_subscriptions, get_user_details, get_exam_master, \
     get_exam_masters, create_exam_master_deatils, delete_exam_master_data, get_categories_by_exam_master, \
-    get_distinct_testno_with_category_and_master
+    get_distinct_testno_with_category_and_master, get_test_sets
 from app.db.session import get_db
 from app.security import get_current_user, TokenData
 import logging
@@ -299,6 +299,11 @@ def get_test_summary(user_id: int, test_no: str, set_no: str,
 def review_summary(user_id: int, test_no: int, set_no: int, db: Session = Depends(get_db),
                    current_user: TokenData = Depends(get_current_user)):
     return get_review_summary(db=db, user_id=user_id, test_no=test_no, set_no=set_no)
+
+@router.get("/test_sets/{user_id}", response_model=List[TestSetResponse])
+def get_test_sets_for_user(user_id: int, db: Session = Depends(get_db),
+                          ):
+    return get_test_sets(db=db, user_id=user_id)
 
 
 # @router.post("/subscribe", response_model=List[UserSubscriptionResponse])

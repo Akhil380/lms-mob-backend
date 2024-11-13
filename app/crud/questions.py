@@ -310,6 +310,19 @@ def fetch_test_summary(db: Session, user_id: int, test_no: int, set_no: int):
     }
 
 
+
+
+def get_test_sets(db: Session, user_id: int):
+    results = db.query(TestResult.test_no, TestResult.category) \
+        .filter(TestResult.user_id == user_id) \
+        .distinct().all()
+
+    # Transforming results to a list of dictionaries
+    formatted_results = [{"test_no": result.test_no, "set_no": result.category} for result in results]
+
+    return formatted_results
+
+
 def create_user_subscriptions(db: Session, user_id: int, question_set_ids: List[int]):
     user = db.query(User).filter(User.id == user_id).first()
 
