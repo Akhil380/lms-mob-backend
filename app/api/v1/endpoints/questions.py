@@ -6,7 +6,7 @@ import chardet
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from fastapi.openapi.models import Response
 from fastapi.params import Query
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session, joinedload
 import csv
@@ -19,7 +19,7 @@ from app.core.config import settings
 from app.schemas.questions import Question, QuestionCreate, QuestionSetType, TestNoWithCategoryResponse, \
     TestResultCreate, TestResultResponse, TestSummaryResponse, ReviewSummaryResponse, UserSubscriptionResponse, \
     UserSubscriptionCreate, UserResponse, TimeAndAvailabilityResponse, VerifyOTPRequest, GenerateOTPRequest, \
-    ExamMasterResponse, ExamMasterCreate, CategoryResponse, TestSetResponse
+    ExamMasterResponse, ExamMasterCreate, CategoryResponse, TestSetResponse, QuestionCountSchema
 from app.crud.questions import create_question, get_questions, get_questions_by_cat, get_question_set_types, \
     delete_question_set_type_by_name, get_distinct_testno_with_category, create_test_result, \
     get_review_summary, fetch_test_summary, create_user_subscriptions, get_user_details, get_exam_master, \
@@ -258,6 +258,31 @@ def get_questions_by_set_and_test(
 
     return questions
 
+@router.get("/question_count", response_model=dict)
+def get_question_count(
+    category: str,  # Category as a query parameter
+    test_no: str,   # Test number as a query parameter
+    db: Session = Depends(get_db),
+    #current_user: TokenData = Depends(get_current_user)
+):
+    """
+    Get the count of questions for a specific category and test number.
+    """
+    if not category or not test_no:
+        raise HTTPException(status_code=400, detail="Category and test number must be provided.")
+
+    # Query to get the count of questions
+    question_count = (
+        db.query(func.count(QuestionModel.id))
+        .filter(QuestionModel.category == category)
+        .filter(QuestionModel.test_no == test_no)
+        .scalar()
+    )
+
+    if question_count == 0:
+        raise HTTPException(status_code=404, detail="No questions found for the given category and test number.")
+
+    return {"category": category, "test_no": test_no, "question_count": question_count}
 
 @router.delete("/question_set_type/{set_name}")
 def delete_question_set_type(

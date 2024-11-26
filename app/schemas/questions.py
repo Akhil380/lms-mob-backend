@@ -121,7 +121,7 @@ class QuestionResult(BaseModel):
     correct_option: str
     isAttendedFlag: bool
     is_user_answer_true: Optional[bool] = None  # Make this field optional
-
+    attended_date: Optional[datetime] = None
     class Config:
         orm_mode = True
 
@@ -220,3 +220,11 @@ class GenerateOTPRequest(BaseModel):
 class VerifyOTPRequest(BaseModel):
     email: EmailStr  # The email to verify the OTP against
     otp: str  # The OTP code to verify
+
+class QuestionCountSchema(BaseModel):
+    category: str
+    test_no: str
+    question_count: int
+
+    class Config:
+        orm_mode = True

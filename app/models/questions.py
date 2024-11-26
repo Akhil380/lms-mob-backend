@@ -294,7 +294,7 @@ class TestResult(Base):
 
     # New field to track if the user's answer is correct
     is_user_answer_true = Column(Boolean, default=False)
-
+    attended_date = Column(DateTime, nullable=True)
     # Relationships
     user = relationship("User", back_populates="test_results")
     question = relationship("Question", back_populates="test_results")

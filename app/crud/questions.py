@@ -184,6 +184,49 @@ def get_distinct_testno_with_category_and_master(db: Session, category: str, mas
 #
 #
 
+# def create_test_result(db: Session, test_result: TestResultCreate):
+#     db_test_results = []
+#
+#     for result in test_result.results:
+#         user_selected_answer = result.userSelectedAnswer
+#         correct_option = result.correct_option
+#         is_attended = result.isAttendedFlag
+#         description = result.description
+#
+#         # Calculate if the user's answer is correct
+#         is_user_answer_true = user_selected_answer == correct_option
+#
+#         # Check if the result already exists for the user, test, and question
+#         existing_result = db.query(TestResult).filter(
+#             TestResult.user_id == test_result.user_id,
+#             TestResult.test_no == result.test_no,
+#             TestResult.question_id == result.question_id
+#         ).first()
+#
+#         if existing_result:
+#             # Update existing result
+#             existing_result.user_selected_answer = user_selected_answer
+#             existing_result.is_attended = is_attended
+#             existing_result.is_user_answer_true = is_user_answer_true
+#         else:
+#             # Create new result
+#             db_test_result = TestResult(
+#                 user_id=test_result.user_id,
+#                 question_id=result.question_id,
+#                 category=result.category,
+#                 test_no=result.test_no,
+#                 user_selected_answer=user_selected_answer,
+#                 correct_option=correct_option,
+#                 is_attended=is_attended,
+#                 description=description,
+#                 is_user_answer_true=is_user_answer_true
+#             )
+#             db.add(db_test_result)
+#             db_test_results.append(db_test_result)
+#
+#     db.commit()
+#     return db_test_results
+
 def create_test_result(db: Session, test_result: TestResultCreate):
     db_test_results = []
 
@@ -192,6 +235,7 @@ def create_test_result(db: Session, test_result: TestResultCreate):
         correct_option = result.correct_option
         is_attended = result.isAttendedFlag
         description = result.description
+        attended_date = result.attended_date or datetime.utcnow()  # Use provided date or current time
 
         # Calculate if the user's answer is correct
         is_user_answer_true = user_selected_answer == correct_option
@@ -208,6 +252,7 @@ def create_test_result(db: Session, test_result: TestResultCreate):
             existing_result.user_selected_answer = user_selected_answer
             existing_result.is_attended = is_attended
             existing_result.is_user_answer_true = is_user_answer_true
+            existing_result.attended_date = attended_date  # Update attended date
         else:
             # Create new result
             db_test_result = TestResult(
@@ -219,7 +264,8 @@ def create_test_result(db: Session, test_result: TestResultCreate):
                 correct_option=correct_option,
                 is_attended=is_attended,
                 description=description,
-                is_user_answer_true=is_user_answer_true
+                is_user_answer_true=is_user_answer_true,
+                attended_date=attended_date  # Save attended date
             )
             db.add(db_test_result)
             db_test_results.append(db_test_result)
